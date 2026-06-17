@@ -1,0 +1,16 @@
+# Git hooks (lefthook). Installed via the postinstall script.
+# https://lefthook.dev/configuration/
+pre-commit:
+  jobs:
+    - name: lint-staged
+      run: pnpm exec lint-staged
+
+pre-push:
+  parallel: true
+  jobs:
+    - name: typecheck
+      run: pnpm typecheck
+    - name: no-js
+      run: pnpm check:no-js
+    - name: test
+      run: pnpm test

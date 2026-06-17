@@ -1,0 +1,69 @@
+{
+  "name": "youtube-search",
+  "type": "module",
+  "private": true,
+  "packageManager": "pnpm@10.33.2",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "build:worker": "esbuild server/worker.ts --bundle --platform=node --format=esm --target=node22 --packages=external --outfile=.output-worker/worker.mjs",
+    "preview": "nuxt preview",
+    "worker": "node .output-worker/worker.mjs",
+    "worker:dev": "node --env-file=.env --import jiti/register server/worker.ts",
+    "postinstall": "nuxt prepare && (lefthook install || true)",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "nuxt typecheck",
+    "check:no-js": "node --import jiti/register scripts/check-no-js.ts",
+    "verify": "pnpm lint && pnpm typecheck && pnpm check:no-js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "3.1071.0",
+    "@pinia/nuxt": "0.11.3",
+    "drizzle-orm": "0.45.2",
+    "ioredis": "5.11.1",
+    "nuxt": "4.4.8",
+    "pinia": "3.0.4",
+    "postgres": "3.4.9",
+    "sharp": "0.35.1",
+    "sharp-phash": "2.2.0",
+    "vue": "3.5.38",
+    "vue-router": "5.1.0",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@nuxt/eslint": "1.16.0",
+    "@nuxt/test-utils": "4.0.3",
+    "@types/node": "25.9.3",
+    "@vue/test-utils": "2.4.11",
+    "drizzle-kit": "0.31.10",
+    "esbuild": "0.28.1",
+    "eslint": "10.5.0",
+    "happy-dom": "20.10.5",
+    "jiti": "2.7.0",
+    "lefthook": "2.1.9",
+    "lint-staged": "17.0.7",
+    "typescript": "6.0.3",
+    "vitest": "4.1.9",
+    "vue-tsc": "3.3.5"
+  },
+  "lint-staged": {
+    "*.{ts,vue,json,yml,yaml}": "eslint --fix"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp",
+      "lefthook",
+      "@parcel/watcher",
+      "unrs-resolver"
+    ]
+  }
+}

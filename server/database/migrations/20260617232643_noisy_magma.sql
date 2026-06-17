@@ -1,0 +1,2 @@
+ALTER TABLE "video_comments" ADD COLUMN "text_norm_text" text GENERATED ALWAYS AS (immutable_array_to_string(text_norm)) STORED NOT NULL;--> statement-breakpoint
+CREATE INDEX "video_comments_text_norm_text_trgm_idx" ON "video_comments" USING gin ("text_norm_text" gin_trgm_ops);

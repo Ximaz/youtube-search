@@ -1,0 +1,16 @@
+node_modules
+.nuxt
+.output
+.output-worker
+.nitro
+.cache
+.data
+dist
+coverage
+.git
+.github
+.env
+.env.*
+secrets/**/*.env
+*.log
+.DS_Store

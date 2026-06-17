@@ -1,0 +1,36 @@
+# syntax=docker/dockerfile:1.7
+ARG NODE_IMAGE=node:22-alpine@sha256:e58326d0d441090181ac150dc2078d3e2cf6a0d42e809aebba3ef5880935ffdd
+
+# ---- base: pnpm via corepack ----
+FROM ${NODE_IMAGE} AS base
+ENV PNPM_HOME=/pnpm
+ENV PATH=/pnpm:$PATH
+RUN corepack enable
+WORKDIR /app
+
+# ---- deps: all deps (for the esbuild bundle) ----
+FROM base AS deps
+COPY package.json pnpm-lock.yaml .npmrc ./
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --frozen-lockfile --ignore-scripts
+
+# ---- build: bundle the worker entry (deps kept external) ----
+FROM deps AS build
+COPY . .
+RUN pnpm exec nuxt prepare && pnpm build:worker
+
+# ---- prod-deps: production-only node_modules for the external imports ----
+FROM base AS prod-deps
+COPY package.json pnpm-lock.yaml .npmrc ./
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --prod --frozen-lockfile --ignore-scripts
+
+# ---- runtime: bundled worker + production deps, non-root ----
+FROM ${NODE_IMAGE} AS runtime
+ENV NODE_ENV=production
+WORKDIR /app
+COPY --from=prod-deps /app/node_modules ./node_modules
+COPY --from=build /app/.output-worker ./.output-worker
+COPY package.json ./
+USER node
+CMD ["node", ".output-worker/worker.mjs"]
