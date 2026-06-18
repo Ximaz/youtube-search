@@ -12,6 +12,7 @@ interface ResultRow {
   deletedFromYoutube: boolean
   saved: boolean
   subscribed: boolean
+  isShort: boolean | null
   thumbS3Key: string | null
 }
 interface SearchResponse { total: number, results: ResultRow[] }
@@ -31,6 +32,7 @@ const f = reactive({
   durationTolerancePct: '',
   subscribed: '' as '' | 'yes' | 'no',
   saved: '' as '' | 'yes' | 'no',
+  videoKind: 'any' as 'any' | 'short' | 'video',
   thumbnailPhash: '',
   thumbnailThreshold: 10,
   avatarPhash: '',
@@ -40,6 +42,7 @@ const f = reactive({
   includeUnknownNumeric: true,
   includeDeleted: false,
   sort: 'published_desc',
+  perPage: 50,
 })
 
 const imageError = ref<string | null>(null)
@@ -103,7 +106,9 @@ async function scanComments(): Promise<void> {
 const results = ref<ResultRow[]>([])
 const total = ref(0)
 const loading = ref(false)
+const loadingMore = ref(false)
 const error = ref<string | null>(null)
+const sentinel = ref<HTMLElement | null>(null)
 
 function hmsToSeconds(input: string): number | null {
   const t = input.trim()
@@ -122,12 +127,13 @@ function numeric(n: NumericInput) {
   return { value, tolerancePct }
 }
 
-function buildSpec(): Record<string, unknown> {
+function buildSpec(offset = 0): Record<string, unknown> {
   const spec: Record<string, unknown> = {
     includeUnknownNumeric: f.includeUnknownNumeric,
     includeDeleted: f.includeDeleted,
     sort: f.sort,
-    limit: 60,
+    limit: f.perPage,
+    offset,
   }
   if (f.title.trim()) spec.title = f.title
   if (f.description.trim()) spec.description = f.description
@@ -158,6 +164,7 @@ function buildSpec(): Record<string, unknown> {
   }
   if (f.subscribed) spec.subscribed = f.subscribed === 'yes'
   if (f.saved) spec.saved = { state: f.saved === 'yes' }
+  if (f.videoKind !== 'any') spec.videoKind = f.videoKind
   if (f.thumbnailPhash) spec.thumbnail = { phash: f.thumbnailPhash, threshold: f.thumbnailThreshold }
   if (f.avatarPhash) spec.channelAvatar = { phash: f.avatarPhash, threshold: f.avatarThreshold }
   const comments = parsedCommentTexts()
@@ -165,13 +172,16 @@ function buildSpec(): Record<string, unknown> {
   return spec
 }
 
+// A monotonically-increasing tag: a fresh search (reset) bumps it so any
+// in-flight reset OR append from an older query is discarded.
 let searchSeq = 0
+
 async function runSearch(): Promise<void> {
   const seq = ++searchSeq
   loading.value = true
   error.value = null
   try {
-    const res = await $fetch<SearchResponse>('/api/search', { method: 'POST', body: buildSpec() })
+    const res = await $fetch<SearchResponse>('/api/search', { method: 'POST', body: buildSpec(0) })
     if (seq !== searchSeq) return // a newer search superseded this one
     results.value = res.results
     total.value = res.total
@@ -184,20 +194,51 @@ async function runSearch(): Promise<void> {
   }
 }
 
+// Append the next page (infinite scroll), unless we already have everything.
+async function loadMore(): Promise<void> {
+  if (loading.value || loadingMore.value || results.value.length >= total.value) return
+  const seq = searchSeq
+  loadingMore.value = true
+  try {
+    const res = await $fetch<SearchResponse>('/api/search', { method: 'POST', body: buildSpec(results.value.length) })
+    if (seq !== searchSeq) return // a new search replaced these results
+    results.value.push(...res.results)
+    total.value = res.total
+  }
+  catch {
+    // transient; scrolling again retries
+  }
+  finally {
+    loadingMore.value = false
+  }
+}
+
 let debounce: ReturnType<typeof setTimeout> | null = null
 watch(f, () => {
   if (debounce) clearTimeout(debounce)
   debounce = setTimeout(runSearch, 350)
 }, { deep: true })
 
-onMounted(runSearch)
+let observer: IntersectionObserver | null = null
+onMounted(() => {
+  void runSearch()
+  // Prefetch the next page ~600px before the sentinel reaches the viewport.
+  observer = new IntersectionObserver((entries) => {
+    if (entries[0]?.isIntersecting) void loadMore()
+  }, { rootMargin: '600px' })
+  if (sentinel.value) observer.observe(sentinel.value)
+})
+onBeforeUnmount(() => {
+  observer?.disconnect()
+  if (debounce) clearTimeout(debounce)
+})
 
 function reset(): void {
   Object.assign(f, {
     title: '', description: '', channelTitle: '', from: '', to: '', outOfBoundDays: '',
     views: { value: '', tolerancePct: '' }, likes: { value: '', tolerancePct: '' },
     comments: { value: '', tolerancePct: '' }, subscribers: { value: '', tolerancePct: '' },
-    duration: '', durationTolerancePct: '', subscribed: '', saved: '',
+    duration: '', durationTolerancePct: '', subscribed: '', saved: '', videoKind: 'any',
     thumbnailPhash: '', thumbnailThreshold: 10, avatarPhash: '', avatarThreshold: 10,
     commentTexts: '', commentMode: 'all',
     includeUnknownNumeric: true, includeDeleted: false, sort: 'published_desc',
@@ -471,6 +512,13 @@ function thumb(row: ResultRow): string {
 
       <fieldset>
         <legend>Flags</legend>
+        <label>Kind
+          <select v-model="f.videoKind">
+            <option value="any">Any</option>
+            <option value="short">Shorts only</option>
+            <option value="video">Regular videos only</option>
+          </select>
+        </label>
         <label>Subscribed to channel
           <select v-model="f.subscribed">
             <option value="">Any</option>
@@ -508,17 +556,30 @@ function thumb(row: ResultRow): string {
     </aside>
 
     <section class="results">
-      <p class="results-head">
-        <strong>{{ total }}</strong> match{{ total === 1 ? '' : 'es' }}
-        <span
-          v-if="loading"
-          class="muted"
-        > · searching…</span>
-        <span
-          v-if="error"
-          class="error"
-        > · {{ error }}</span>
-      </p>
+      <div class="results-head">
+        <p>
+          <strong>{{ total }}</strong> match{{ total === 1 ? '' : 'es' }}
+          <span
+            v-if="results.length < total"
+            class="muted"
+          > · showing {{ results.length }}</span>
+          <span
+            v-if="loading"
+            class="muted"
+          > · searching…</span>
+          <span
+            v-if="error"
+            class="error"
+          > · {{ error }}</span>
+        </p>
+        <label class="perpage">Per page
+          <select v-model.number="f.perPage">
+            <option :value="50">50</option>
+            <option :value="100">100</option>
+            <option :value="200">200</option>
+          </select>
+        </label>
+      </div>
 
       <ul class="grid">
         <li
@@ -557,6 +618,10 @@ function thumb(row: ResultRow): string {
             </div>
             <div class="badges">
               <span
+                v-if="r.isShort"
+                class="badge short"
+              >short</span>
+              <span
                 v-if="r.saved"
                 class="badge saved"
               >saved</span>
@@ -572,6 +637,24 @@ function thumb(row: ResultRow): string {
           </div>
         </li>
       </ul>
+
+      <!-- Infinite-scroll sentinel: observed to prefetch the next page. -->
+      <div
+        ref="sentinel"
+        class="sentinel"
+      />
+      <p
+        v-if="loadingMore"
+        class="muted load-more"
+      >
+        Loading more…
+      </p>
+      <p
+        v-else-if="!loading && results.length > 0 && results.length >= total"
+        class="muted load-more"
+      >
+        End of results.
+      </p>
 
       <p
         v-if="!loading && results.length === 0"
@@ -605,7 +688,12 @@ legend { font-size: .78rem; color: #666; padding: 0 .3rem; }
 .imgok { color: #1a7f37; margin-right: .5rem; }
 .slider { display: flex; align-items: center; gap: .4rem; margin-top: .3rem; }
 .slider input[type="range"] { flex: 1; }
-.results-head { margin: 0 0 .8rem; }
+.results-head { margin: 0 0 .8rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.results-head p { margin: 0; }
+.perpage { font-size: .8rem; color: #444; white-space: nowrap; }
+.perpage select { margin-left: .3rem; padding: .25rem .4rem; border: 1px solid #d0d0d5; border-radius: 7px; font-size: .85rem; }
+.sentinel { height: 1px; }
+.load-more { text-align: center; margin: 1rem 0; font-size: .85rem; }
 .grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
 .vcard { background: #fff; border: 1px solid #e5e5ea; border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
 .thumb { position: relative; display: block; aspect-ratio: 16/9; background: #f2f2f7; }
@@ -618,6 +706,7 @@ legend { font-size: .78rem; color: #666; padding: 0 .3rem; }
 .vmeta { color: #888; font-size: .76rem; margin-top: .3rem; }
 .badges { margin-top: .45rem; display: flex; gap: .3rem; flex-wrap: wrap; }
 .badge { font-size: .68rem; padding: .08rem .4rem; border-radius: 999px; }
+.badge.short { background: #fdeef0; color: #cc0000; }
 .badge.saved { background: #e7f5ec; color: #1a7f37; }
 .badge.sub { background: #e8eefc; color: #2952cc; }
 .badge.del { background: #fde8e8; color: #cc0000; }

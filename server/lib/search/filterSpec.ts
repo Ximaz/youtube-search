@@ -36,6 +36,9 @@ export const FilterSpecSchema = z.object({
     playlistIds: z.array(z.string()).optional(),
   }).optional(),
 
+  // Short vs regular video. 'any' = no filter.
+  videoKind: z.enum(['any', 'short', 'video']).default('any'),
+
   // Perceptual-hash image match (Hamming distance threshold). phash is a 64-bit
   // "0"/"1" string from /api/image-search.
   thumbnail: z.object({
@@ -62,7 +65,7 @@ export const FilterSpecSchema = z.object({
   sort: z.enum([
     'published_desc', 'published_asc', 'views_desc', 'likes_desc', 'duration_desc', 'duration_asc',
   ]).default('published_desc'),
-  limit: z.number().int().min(1).max(100).default(50),
+  limit: z.number().int().min(1).max(200).default(50),
   offset: z.number().int().min(0).default(0),
 })
 

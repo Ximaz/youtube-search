@@ -1,9 +1,10 @@
-import { and, asc, eq, gt, inArray, isNotNull, isNull, lt, or, sql } from 'drizzle-orm'
+import { and, asc, eq, gt, inArray, isNotNull, isNull, lt, lte, or, sql } from 'drizzle-orm'
 import { channels, imageBlobs, oauthAccount, playlistItems, playlists, subscriptions, syncState, videos } from '../../database/schema'
 import { useCache } from '../cache'
 import { useEnv } from '../env'
 import type { StoredImage } from '../image/store'
 import { processImageUrl, processVideoThumbnail } from '../image/store'
+import { detectShortStatus } from './shorts'
 import { useDb } from '../db'
 import { normalizeTokens } from '../text/normalize'
 import {
@@ -26,7 +27,7 @@ export const SYNC_QUEUE_KEY = 'yt:sync:queue'
 
 export type SyncPhase
   = | 'idle' | 'me' | 'playlists' | 'playlist_items'
-    | 'hydrate_videos' | 'hydrate_channels' | 'subscriptions' | 'images' | 'done'
+    | 'hydrate_videos' | 'hydrate_channels' | 'subscriptions' | 'images' | 'shorts' | 'done'
 
 export interface SyncResult {
   outcome: 'done' | 'parked' | 'locked' | 'not_connected'
@@ -80,6 +81,7 @@ async function step(phase: SyncPhase): Promise<State> {
     case 'hydrate_channels': return stepHydrateChannels()
     case 'subscriptions': return stepSubscriptions()
     case 'images': return stepImages()
+    case 'shorts': return stepShorts()
     default: return setPhase('done')
   }
 }
@@ -330,8 +332,61 @@ async function stepImages(): Promise<State> {
     return getState()
   }
 
-  await db.update(syncState).set({ lastFullSyncAt: now, lastError: null, updatedAt: now }).where(eq(syncState.id, 1))
-  return setPhase('done', { pageToken: null })
+  return setPhase('shorts', { pageToken: null })
+}
+
+const SHORTS_BATCH = 40
+const SHORTS_MAX_SECONDS = 180
+
+// --- shorts: classify each non-deleted video as Short vs regular. Anything
+// longer than 3 min / live / unknown-duration is a non-Short for free; the rest
+// are checked via the youtube.com/shorts/<id> redirect (no API quota). A fully
+// errored batch (likely rate-limited) finishes the run and retries next sync. ---
+async function stepShorts(): Promise<State> {
+  const db = useDb()
+  const now = new Date()
+
+  await db.update(videos)
+    .set({ isShort: false, updatedAt: now })
+    .where(and(
+      isNull(videos.isShort),
+      eq(videos.deletedFromYoutube, false),
+      or(gt(videos.durationSeconds, SHORTS_MAX_SECONDS), isNull(videos.durationSeconds), eq(videos.isLiveOrUpcoming, true)),
+    ))
+
+  const rows = await db.select({ id: videos.id }).from(videos)
+    .where(and(
+      isNull(videos.isShort),
+      eq(videos.deletedFromYoutube, false),
+      lte(videos.durationSeconds, SHORTS_MAX_SECONDS),
+      eq(videos.isLiveOrUpcoming, false),
+    ))
+    .limit(SHORTS_BATCH)
+  if (rows.length === 0) {
+    await db.update(syncState).set({ lastFullSyncAt: now, lastError: null, updatedAt: now }).where(eq(syncState.id, 1))
+    return setPhase('done')
+  }
+
+  let resolved = 0
+  await mapLimited(rows, 4, async (row) => {
+    const status = await detectShortStatus(row.id)
+    if (status === 'error') return
+    await db.update(videos).set({ isShort: status === 'short', updatedAt: now }).where(eq(videos.id, row.id))
+    resolved++
+  })
+
+  if (resolved === 0) {
+    await db.update(syncState).set({ lastFullSyncAt: now, lastError: 'Short detection deferred (rate limited); will retry next sync', updatedAt: now }).where(eq(syncState.id, 1))
+    return setPhase('done')
+  }
+  return getState()
+}
+
+// Clears the sync single-flight lock. Called on (single) worker startup: a
+// worker killed mid-step leaves a stale lock (its finally release doesn't run on
+// SIGTERM), which would otherwise idle the next worker until the TTL expires.
+export async function clearStaleSyncLock(): Promise<void> {
+  await useCache().del(LOCK_KEY)
 }
 
 // Reset to a fresh full sync and wake the worker.

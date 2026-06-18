@@ -114,6 +114,9 @@ function buildConditions(spec: FilterSpec): SQL[] {
     push(sql`${channels.avatarPhash} is not null and bit_count(${channels.avatarPhash} # ${spec.channelAvatar.phash}::bit(64)) <= ${spec.channelAvatar.threshold}`)
   }
 
+  if (spec.videoKind === 'short') push(eq(videos.isShort, true))
+  else if (spec.videoKind === 'video') push(eq(videos.isShort, false))
+
   if (spec.subscribed !== undefined) {
     push(spec.subscribed ? SUBSCRIBED_EXISTS : sql`not ${SUBSCRIBED_EXISTS}`)
   }
@@ -168,6 +171,7 @@ export interface SearchResultRow {
   likeCount: number | null
   commentCount: number | null
   isLiveOrUpcoming: boolean
+  isShort: boolean | null
   deletedFromYoutube: boolean
   thumbS3Key: string | null
   saved: boolean
@@ -191,6 +195,7 @@ export async function searchVideos(spec: FilterSpec): Promise<{ total: number, r
       likeCount: videos.likeCount,
       commentCount: videos.commentCount,
       isLiveOrUpcoming: videos.isLiveOrUpcoming,
+      isShort: videos.isShort,
       deletedFromYoutube: videos.deletedFromYoutube,
       thumbS3Key: videos.thumbS3Key,
       saved: sql<boolean>`${SAVED_EXISTS}`,

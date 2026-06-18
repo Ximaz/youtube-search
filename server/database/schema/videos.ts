@@ -26,6 +26,8 @@ export const videos = pgTable('videos', {
   publishedAt: timestamp({ withTimezone: true }),
   durationSeconds: integer(),
   isLiveOrUpcoming: boolean().notNull().default(false),
+  // null = not yet determined; true = YouTube Short; false = regular video.
+  isShort: boolean(),
 
   // All stats may be absent when the uploader hides/disables them → null.
   viewCount: bigint({ mode: 'number' }),

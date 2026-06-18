@@ -5,7 +5,7 @@ import { useCache } from './lib/cache'
 import { useDb } from './lib/db'
 import { useEnv } from './lib/env'
 import { computePhash } from './lib/image/hash'
-import { runSync, SYNC_QUEUE_KEY } from './lib/ingest/sync'
+import { clearStaleSyncLock, runSync, SYNC_QUEUE_KEY } from './lib/ingest/sync'
 import { ensureBucket } from './lib/storage'
 import { YoutubeAuthError } from './lib/youtube/errors'
 
@@ -87,6 +87,9 @@ async function main(): Promise<void> {
   catch (error) {
     console.warn('[worker] storage bucket not ready yet:', error)
   }
+
+  // A prior worker killed mid-step may have left a stale sync lock.
+  await clearStaleSyncLock()
 
   // Dedicated connection for the blocking wait so it never holds up cache ops.
   const blocker = new Redis(useEnv().CACHE_URL, { maxRetriesPerRequest: null })
