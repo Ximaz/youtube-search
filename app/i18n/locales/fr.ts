@@ -7,7 +7,7 @@ export const fr: Messages = {
   app: {
     title: 'YouTube Deep-Search',
     subtitle:
-      'Retrouvez une vidéo perdue dans vos playlists et vos « J’aime » — en lecture seule, fonctionne sur votre machine.',
+      'Retrouvez une vidéo perdue dans vos playlists et vos « J’aime ».',
   },
   common: {
     loading: 'Chargement...',

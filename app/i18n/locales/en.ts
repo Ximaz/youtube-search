@@ -5,7 +5,7 @@ export const en = {
   app: {
     title: 'YouTube Deep-Search',
     subtitle:
-      'Retrieve a buried video in your own playlists & likes — read-only, runs on your machine.',
+      'Retrieve a buried video in your own playlists & likes.',
   },
   common: {
     loading: 'Loading...',
