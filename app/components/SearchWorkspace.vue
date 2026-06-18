@@ -40,7 +40,7 @@ const f = reactive({
   commentTexts: '',
   commentMode: 'all' as 'all' | 'any',
   includeUnknownNumeric: true,
-  includeDeleted: false,
+  includeDeleted: true,
   sort: 'published_desc',
   perPage: 50,
 })
@@ -73,6 +73,27 @@ async function hashFromFile(event: Event, target: 'thumbnail' | 'avatar'): Promi
   }
   catch {
     imageError.value = 'Could not read that image file.'
+  }
+}
+
+// Paste straight into the URL field: if the clipboard holds an image blob we
+// hash it (à la Google/Yandex image search); plain text falls through as a URL.
+async function hashFromPaste(event: ClipboardEvent, target: 'thumbnail' | 'avatar'): Promise<void> {
+  const file = Array.from(event.clipboardData?.items ?? [])
+    .find(item => item.kind === 'file' && item.type.startsWith('image/'))
+    ?.getAsFile()
+  if (!file) return
+  event.preventDefault()
+  imageError.value = null
+  try {
+    const form = new FormData()
+    form.append('image', file, file.name || 'clipboard.png')
+    const res = await $fetch<{ phash: string }>('/api/image-search', { method: 'POST', body: form })
+    if (target === 'thumbnail') f.thumbnailPhash = res.phash
+    else f.avatarPhash = res.phash
+  }
+  catch {
+    imageError.value = 'Could not read that pasted image.'
   }
 }
 
@@ -241,7 +262,7 @@ function reset(): void {
     duration: '', durationTolerancePct: '', subscribed: '', saved: '', videoKind: 'any',
     thumbnailPhash: '', thumbnailThreshold: 10, avatarPhash: '', avatarThreshold: 10,
     commentTexts: '', commentMode: 'all',
-    includeUnknownNumeric: true, includeDeleted: false, sort: 'published_desc',
+    includeUnknownNumeric: true, includeDeleted: true, sort: 'published_desc',
   })
   scanInfo.value = null
 }
@@ -280,28 +301,34 @@ function thumb(row: ResultRow): string {
         </button>
       </div>
 
-      <label>Title words <small>(partial, any order)</small>
-        <input
-          v-model="f.title"
-          placeholder="e.g. lofi study mix"
-        >
-      </label>
-      <label>Description words <small>(partial, any order)</small>
-        <input
-          v-model="f.description"
-          placeholder="words in description"
-        >
-      </label>
-      <label>Channel name <small>(partial, any order)</small>
-        <input
-          v-model="f.channelTitle"
-          placeholder="channel words"
-        >
-      </label>
+      <details
+        class="cat"
+        open
+      >
+        <summary>Search text</summary>
+        <label>Title words <small>(partial, any order)</small>
+          <input
+            v-model="f.title"
+            placeholder="e.g. lofi study mix"
+          >
+        </label>
+        <label>Description words <small>(partial, any order)</small>
+          <input
+            v-model="f.description"
+            placeholder="words in description"
+          >
+        </label>
+        <label>Channel name <small>(partial, any order)</small>
+          <input
+            v-model="f.channelTitle"
+            placeholder="channel words"
+          >
+        </label>
+      </details>
 
-      <fieldset>
-        <legend>Published</legend>
-        <div class="grid2">
+      <details class="cat">
+        <summary>Date published</summary>
+        <div>
           <label>From<input
             v-model="f.from"
             type="date"
@@ -319,10 +346,10 @@ function thumb(row: ResultRow): string {
             placeholder="0"
           >
         </label>
-      </fieldset>
+      </details>
 
-      <fieldset>
-        <legend>Numbers <small>(value + tolerance %)</small></legend>
+      <details class="cat">
+        <summary>Counts &amp; duration <small>(value + tolerance %)</small></summary>
         <div class="numrow">
           <span>Views</span>
           <input
@@ -401,16 +428,17 @@ function thumb(row: ResultRow): string {
             placeholder="± %"
           >
         </div>
-      </fieldset>
+      </details>
 
-      <fieldset>
-        <legend>Match by image <small>(perceptual hash)</small></legend>
+      <details class="cat">
+        <summary>Match by image <small>(perceptual hash)</small></summary>
         <div class="imgfilter">
           <span class="imglabel">Thumbnail</span>
           <template v-if="!f.thumbnailPhash">
             <input
               type="url"
-              placeholder="image URL"
+              placeholder="paste image or type URL"
+              @paste="hashFromPaste($event, 'thumbnail')"
               @change="hashFromUrl(($event.target as HTMLInputElement).value, 'thumbnail')"
             >
             <input
@@ -443,7 +471,8 @@ function thumb(row: ResultRow): string {
           <template v-if="!f.avatarPhash">
             <input
               type="url"
-              placeholder="image URL"
+              placeholder="paste image or type URL"
+              @paste="hashFromPaste($event, 'avatar')"
               @change="hashFromUrl(($event.target as HTMLInputElement).value, 'avatar')"
             >
             <input
@@ -477,10 +506,10 @@ function thumb(row: ResultRow): string {
         >
           {{ imageError }}
         </p>
-      </fieldset>
+      </details>
 
-      <fieldset>
-        <legend>My comments</legend>
+      <details class="cat">
+        <summary>My comments</summary>
         <p class="muted hint">
           One fragment per line. "Scan" checks YouTube for your own comments on the current results.
         </p>
@@ -508,10 +537,13 @@ function thumb(row: ResultRow): string {
           Scanned {{ scanInfo.scanned }} · found {{ scanInfo.found }} of your comments ·
           {{ scanInfo.remaining }} not yet scanned<span v-if="scanInfo.parked"> · quota paused</span>
         </p>
-      </fieldset>
+      </details>
 
-      <fieldset>
-        <legend>Flags</legend>
+      <details
+        class="cat"
+        open
+      >
+        <summary>Flags</summary>
         <label>Kind
           <select v-model="f.videoKind">
             <option value="any">Any</option>
@@ -541,7 +573,7 @@ function thumb(row: ResultRow): string {
           v-model="f.includeDeleted"
           type="checkbox"
         > Include videos deleted from YouTube</label>
-      </fieldset>
+      </details>
 
       <label>Sort
         <select v-model="f.sort">
@@ -667,16 +699,19 @@ function thumb(row: ResultRow): string {
 </template>
 
 <style scoped>
-.workspace { display: grid; grid-template-columns: 300px 1fr; gap: 1.25rem; align-items: start; }
-.filters { background: #fff; border: 1px solid #e5e5ea; border-radius: 12px; padding: 1rem; position: sticky; top: 1rem; }
+.workspace { display: grid; grid-template-columns: 320px 1fr; gap: 1.25rem; align-items: start; }
+.filters { background: #fff; border: 1px solid #e5e5ea; border-radius: 12px; padding: 1rem; position: sticky; top: 1rem; max-height: calc(100vh - 2rem); overflow-y: auto; }
 .filters-head { display: flex; justify-content: space-between; align-items: center; }
 .filters h2 { margin: 0; font-size: 1rem; }
 .filters label { display: block; font-size: .8rem; color: #444; margin-top: .7rem; }
 .filters small { color: #999; font-weight: 400; }
 .filters input, .filters select { width: 100%; margin-top: .2rem; padding: .4rem .5rem; border: 1px solid #d0d0d5; border-radius: 7px; font-size: .9rem; box-sizing: border-box; }
-fieldset { border: 1px solid #eee; border-radius: 9px; margin: .8rem 0 0; padding: .5rem .7rem .7rem; }
-legend { font-size: .78rem; color: #666; padding: 0 .3rem; }
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+.cat { border: 1px solid #eee; border-radius: 9px; margin-top: .6rem; padding: 0 .7rem; }
+.cat[open] { padding-bottom: .6rem; }
+.cat > summary { cursor: pointer; padding: .55rem .1rem; font-size: .8rem; font-weight: 600; color: #555; }
+.cat > summary:hover { color: #1c1c1e; }
+.cat > summary small { font-weight: 400; color: #999; }
+.cat[open] > summary { border-bottom: 1px solid #f0f0f0; margin-bottom: .2rem; }
 .numrow { display: grid; grid-template-columns: 78px 1fr 64px; gap: .4rem; align-items: center; margin-top: .4rem; font-size: .8rem; }
 .numrow input { margin-top: 0; }
 .check { display: flex; gap: .4rem; align-items: flex-start; margin-top: .6rem; }

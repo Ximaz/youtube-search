@@ -157,104 +157,106 @@ onBeforeUnmount(stopPolling)
 
     <!-- Authenticated -->
     <template v-else>
-      <section class="card">
-        <div class="card-head">
-          <h2>YouTube account</h2>
-          <button
-            class="link"
-            @click="lockApp"
-          >
-            Lock
-          </button>
-        </div>
-
-        <p
-          v-if="connectError"
-          class="error"
-        >
-          Connection error: {{ connectError }}
-        </p>
-        <p
-          v-else-if="justConnected"
-          class="ok"
-        >
-          ✓ Connected successfully.
-        </p>
-
-        <template v-if="connection?.connected">
-          <p class="ok">
-            Connected<span v-if="connection.channelId"> · channel <code>{{ connection.channelId }}</code></span>
-          </p>
-          <p
-            v-if="connection.tokenInvalid"
-            class="error"
-          >
-            Your access expired — please reconnect.
+      <div class="account-row">
+        <section class="card">
+          <div class="card-head">
+            <h2>YouTube account</h2>
             <button
               class="link"
-              @click="connectYouTube"
+              @click="lockApp"
             >
-              Reconnect
-            </button>
-          </p>
-          <div class="row">
-            <button
-              :disabled="busy"
-              @click="triggerSync"
-            >
-              Sync now
-            </button>
-            <button
-              class="link"
-              @click="disconnectYouTube"
-            >
-              Disconnect
+              Lock
             </button>
           </div>
-        </template>
 
-        <template v-else>
-          <p class="muted">
-            Connect your YouTube account with read-only access. We never modify, delete, like, or comment on anything.
+          <p
+            v-if="connectError"
+            class="error"
+          >
+            Connection error: {{ connectError }}
           </p>
-          <button @click="connectYouTube">
-            Connect YouTube
-          </button>
-        </template>
-      </section>
+          <p
+            v-else-if="justConnected"
+            class="ok"
+          >
+            ✓ Connected successfully.
+          </p>
 
-      <!-- Sync status -->
-      <section
-        v-if="sync"
-        class="card"
-      >
-        <h2>Local mirror</h2>
-        <p>
-          Phase: <strong>{{ sync.phase }}</strong>
-          <span
-            v-if="sync.parked"
+          <template v-if="connection?.connected">
+            <p class="ok">
+              Connected<span v-if="connection.channelId"> · channel <code>{{ connection.channelId }}</code></span>
+            </p>
+            <p
+              v-if="connection.tokenInvalid"
+              class="error"
+            >
+              Your access expired — please reconnect.
+              <button
+                class="link"
+                @click="connectYouTube"
+              >
+                Reconnect
+              </button>
+            </p>
+            <div class="row">
+              <button
+                :disabled="busy"
+                @click="triggerSync"
+              >
+                Sync now
+              </button>
+              <button
+                class="link"
+                @click="disconnectYouTube"
+              >
+                Disconnect
+              </button>
+            </div>
+          </template>
+
+          <template v-else>
+            <p class="muted">
+              Connect your YouTube account with read-only access. We never modify, delete, like, or comment on anything.
+            </p>
+            <button @click="connectYouTube">
+              Connect YouTube
+            </button>
+          </template>
+        </section>
+
+        <!-- Sync status -->
+        <section
+          v-if="sync"
+          class="card"
+        >
+          <h2>Local mirror</h2>
+          <p>
+            Phase: <strong>{{ sync.phase }}</strong>
+            <span
+              v-if="sync.parked"
+              class="warn"
+            > · quota-parked (resumes after reset)</span>
+          </p>
+          <ul class="stats">
+            <li>{{ sync.counts.videosHydrated }} / {{ sync.counts.videos }} videos</li>
+            <li>{{ sync.counts.channels }} channels</li>
+            <li>{{ sync.counts.playlists }} playlists</li>
+            <li>{{ sync.counts.subscriptions }} subscriptions</li>
+          </ul>
+          <p
+            v-if="sync.lastError"
             class="warn"
-          > · quota-parked (resumes after reset)</span>
-        </p>
-        <ul class="stats">
-          <li>{{ sync.counts.videosHydrated }} / {{ sync.counts.videos }} videos</li>
-          <li>{{ sync.counts.channels }} channels</li>
-          <li>{{ sync.counts.playlists }} playlists</li>
-          <li>{{ sync.counts.subscriptions }} subscriptions</li>
-        </ul>
-        <p
-          v-if="sync.lastError"
-          class="warn"
-        >
-          {{ sync.lastError }}
-        </p>
-        <p
-          v-if="sync.lastFullSyncAt"
-          class="muted"
-        >
-          Last full sync: {{ new Date(sync.lastFullSyncAt).toLocaleString() }}
-        </p>
-      </section>
+          >
+            {{ sync.lastError }}
+          </p>
+          <p
+            v-if="sync.lastFullSyncAt"
+            class="muted"
+          >
+            Last full sync: {{ new Date(sync.lastFullSyncAt).toLocaleString() }}
+          </p>
+        </section>
+      </div>
 
       <SearchWorkspace v-if="(sync?.counts.videos ?? 0) > 0" />
       <section
@@ -268,10 +270,12 @@ onBeforeUnmount(stopPolling)
 </template>
 
 <style scoped>
-.page { max-width: 1080px; margin: 2.5rem auto; padding: 0 1rem; font-family: system-ui, sans-serif; color: #1c1c1e; }
+.page { max-width: 1600px; margin: 2.5rem auto; padding: 0 1rem; font-family: system-ui, sans-serif; color: #1c1c1e; }
 .title { margin: 0 0 .25rem; font-size: 1.6rem; }
 .subtitle { margin: 0 0 1.5rem; color: #6b6b70; }
 .card { background: #fff; border: 1px solid #e5e5ea; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+.account-row { display: flex; gap: 1rem; align-items: stretch; margin-bottom: 1rem; }
+.account-row .card { flex: 1; min-width: 0; margin-bottom: 0; }
 .card-head { display: flex; align-items: center; justify-content: space-between; }
 .card h2 { margin: 0 0 .5rem; font-size: 1.05rem; }
 .row { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; margin-top: .5rem; }
