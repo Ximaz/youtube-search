@@ -1,55 +1,56 @@
 <script setup lang="ts">
 const { f, imageError, scanning, scanInfo, scanComments, reset } = useSearchContext()
+const { t } = useI18n()
 </script>
 
 <template>
   <aside class="filters">
     <div class="filters-head">
-      <h2>Filters</h2>
+      <h2>{{ t('filters.title') }}</h2>
       <button
         class="link"
         @click="reset"
       >
-        Reset
+        {{ t('filters.reset') }}
       </button>
     </div>
 
     <FilterSection
-      title="Search text"
+      :title="t('filters.sections.text')"
       open
     >
-      <label>Title words <small>(partial, any order)</small>
+      <label>{{ t('filters.titleWords') }} <small>{{ t('filters.partialHint') }}</small>
         <input
           v-model="f.title"
-          placeholder="e.g. lofi study mix"
+          :placeholder="t('filters.titlePlaceholder')"
         >
       </label>
-      <label>Description words <small>(partial, any order)</small>
+      <label>{{ t('filters.descWords') }} <small>{{ t('filters.partialHint') }}</small>
         <input
           v-model="f.description"
-          placeholder="words in description"
+          :placeholder="t('filters.descPlaceholder')"
         >
       </label>
-      <label>Channel name <small>(partial, any order)</small>
+      <label>{{ t('filters.channelName') }} <small>{{ t('filters.partialHint') }}</small>
         <input
           v-model="f.channelTitle"
-          placeholder="channel words"
+          :placeholder="t('filters.channelPlaceholder')"
         >
       </label>
     </FilterSection>
 
-    <FilterSection title="Date published">
+    <FilterSection :title="t('filters.sections.date')">
       <div>
-        <label>From<input
+        <label>{{ t('filters.from') }}<input
           v-model="f.from"
           type="date"
         ></label>
-        <label>To<input
+        <label>{{ t('filters.to') }}<input
           v-model="f.to"
           type="date"
         ></label>
       </div>
-      <label>± days (if unsure)
+      <label>{{ t('filters.outOfBoundDays') }}
         <input
           v-model="f.outOfBoundDays"
           type="number"
@@ -60,27 +61,27 @@ const { f, imageError, scanning, scanInfo, scanComments, reset } = useSearchCont
     </FilterSection>
 
     <FilterSection
-      title="Counts &amp; duration"
-      hint="(value + tolerance %)"
+      :title="t('filters.sections.counts')"
+      :hint="t('filters.valueToleranceHint')"
     >
       <NumberFilter
-        label="Views"
+        :label="t('filters.views')"
         field="views"
       />
       <NumberFilter
-        label="Likes"
+        :label="t('filters.likes')"
         field="likes"
       />
       <NumberFilter
-        label="Comments"
+        :label="t('filters.comments')"
         field="comments"
       />
       <NumberFilter
-        label="Subscribers"
+        :label="t('filters.subscribers')"
         field="subscribers"
       />
       <div class="numrow">
-        <span>Duration</span>
+        <span>{{ t('filters.duration') }}</span>
         <input
           v-model="f.duration"
           placeholder="HH:MM:SS"
@@ -90,22 +91,22 @@ const { f, imageError, scanning, scanInfo, scanComments, reset } = useSearchCont
           type="number"
           min="0"
           max="100"
-          placeholder="± %"
+          :placeholder="t('filters.tolerancePlaceholder')"
         >
       </div>
     </FilterSection>
 
     <FilterSection
-      title="Match by image"
-      hint="(perceptual hash)"
+      :title="t('filters.sections.image')"
+      :hint="t('filters.perceptualHashHint')"
     >
       <ImageFilter
         target="thumbnail"
-        label="Thumbnail"
+        :label="t('filters.thumbnail')"
       />
       <ImageFilter
         target="avatar"
-        label="Channel avatar"
+        :label="t('filters.channelAvatar')"
       />
       <p
         v-if="imageError"
@@ -115,79 +116,78 @@ const { f, imageError, scanning, scanInfo, scanComments, reset } = useSearchCont
       </p>
     </FilterSection>
 
-    <FilterSection title="My comments">
+    <FilterSection :title="t('filters.sections.comments')">
       <p class="muted hint">
-        One fragment per line. "Scan" checks YouTube for your own comments on the current results.
+        {{ t('filters.commentsHint') }}
       </p>
       <textarea
         v-model="f.commentTexts"
         rows="3"
-        placeholder="words from a comment you left…"
+        :placeholder="t('filters.commentsPlaceholder')"
       />
-      <label>Match
+      <label>{{ t('filters.match') }}
         <select v-model="f.commentMode">
-          <option value="all">all fragments</option>
-          <option value="any">any fragment</option>
+          <option value="all">{{ t('filters.matchAll') }}</option>
+          <option value="any">{{ t('filters.matchAny') }}</option>
         </select>
       </label>
       <button
         :disabled="scanning || !f.commentTexts.trim()"
         @click="scanComments"
       >
-        {{ scanning ? 'Scanning…' : 'Scan comments' }}
+        {{ scanning ? t('filters.scanning') : t('filters.scanComments') }}
       </button>
       <p
         v-if="scanInfo"
         class="muted hint"
       >
-        Scanned {{ scanInfo.scanned }} · found {{ scanInfo.found }} of your comments ·
-        {{ scanInfo.remaining }} not yet scanned<span v-if="scanInfo.parked"> · quota paused</span>
+        {{ t('filters.scanResult', { scanned: scanInfo.scanned, found: scanInfo.found, remaining: scanInfo.remaining }) }}<span v-if="scanInfo.parked">{{ t('filters.quotaPaused') }}</span>
       </p>
     </FilterSection>
 
     <FilterSection
-      title="Flags"
+      :title="t('filters.sections.flags')"
       open
     >
-      <label>Kind
+      <label>{{ t('filters.kind') }}
         <select v-model="f.videoKind">
-          <option value="any">Any</option>
-          <option value="short">Shorts only</option>
-          <option value="video">Regular videos only</option>
+          <option value="any">{{ t('filters.kindAny') }}</option>
+          <option value="short">{{ t('filters.kindShort') }}</option>
+          <option value="video">{{ t('filters.kindVideo') }}</option>
         </select>
       </label>
-      <label>Subscribed to channel
+      <label>{{ t('filters.subscribed') }}
         <select v-model="f.subscribed">
-          <option value="">Any</option>
-          <option value="yes">Yes</option>
-          <option value="no">No</option>
+          <option value="">{{ t('common.any') }}</option>
+          <option value="yes">{{ t('common.yes') }}</option>
+          <option value="no">{{ t('common.no') }}</option>
         </select>
       </label>
-      <label>Saved in a playlist
+      <label>{{ t('filters.saved') }}
         <select v-model="f.saved">
-          <option value="">Any</option>
-          <option value="yes">Yes</option>
-          <option value="no">No</option>
+          <option value="">{{ t('common.any') }}</option>
+          <option value="yes">{{ t('common.yes') }}</option>
+          <option value="no">{{ t('common.no') }}</option>
         </select>
       </label>
       <label class="check"><input
         v-model="f.includeUnknownNumeric"
         type="checkbox"
-      > Include items with hidden/unknown numbers</label>
+      > {{ t('filters.includeUnknown') }}</label>
       <label class="check"><input
         v-model="f.includeDeleted"
         type="checkbox"
-      > Include videos deleted from YouTube</label>
+      > {{ t('filters.includeDeleted') }}</label>
     </FilterSection>
 
-    <label>Sort
+    <label>{{ t('filters.sort') }}
       <select v-model="f.sort">
-        <option value="published_desc">Newest first</option>
-        <option value="published_asc">Oldest first</option>
-        <option value="views_desc">Most views</option>
-        <option value="likes_desc">Most likes</option>
-        <option value="duration_desc">Longest</option>
-        <option value="duration_asc">Shortest</option>
+        <option value="published_desc">{{ t('filters.sortNewest') }}</option>
+        <option value="published_asc">{{ t('filters.sortOldest') }}</option>
+        <option value="views_desc">{{ t('filters.sortViews') }}</option>
+        <option value="likes_desc">{{ t('filters.sortLikes') }}</option>
+        <option value="duration_desc">{{ t('filters.sortLongest') }}</option>
+        <option value="duration_asc">{{ t('filters.sortShortest') }}</option>
       </select>
     </label>
   </aside>

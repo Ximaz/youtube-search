@@ -4,6 +4,7 @@ import type { ResultRow } from '~/types/search'
 
 const props = defineProps<{ row: ResultRow }>()
 const watchUrl = `https://www.youtube.com/watch?v=${props.row.id}`
+const { t, tc, fmtCount, fmtDate } = useI18n()
 </script>
 
 <template>
@@ -30,12 +31,12 @@ const watchUrl = `https://www.youtube.com/watch?v=${props.row.id}`
         target="_blank"
         rel="noopener"
         class="vtitle"
-      >{{ row.title || '(untitled)' }}</a>
+      >{{ row.title || t('video.untitled') }}</a>
       <div class="vchannel">
         {{ row.channelTitle || '—' }}
       </div>
       <div class="vmeta">
-        {{ fmtCount(row.viewCount) }} views · {{ fmtCount(row.likeCount) }} likes
+        {{ fmtCount(row.viewCount) }} {{ tc('video.viewsNoun', row.viewCount ?? 0) }} · {{ fmtCount(row.likeCount) }} {{ tc('video.likesNoun', row.likeCount ?? 0) }}
         <br>
         {{ fmtDate(row.publishedAt) }}
       </div>
@@ -43,19 +44,19 @@ const watchUrl = `https://www.youtube.com/watch?v=${props.row.id}`
         <span
           v-if="row.isShort"
           class="badge short"
-        >short</span>
+        >{{ t('video.badge.short') }}</span>
         <span
           v-if="row.saved"
           class="badge saved"
-        >saved</span>
+        >{{ t('video.badge.saved') }}</span>
         <span
           v-if="row.subscribed"
           class="badge sub"
-        >subscribed</span>
+        >{{ t('video.badge.subscribed') }}</span>
         <span
           v-if="row.deletedFromYoutube"
           class="badge del"
-        >deleted</span>
+        >{{ t('video.badge.deleted') }}</span>
       </div>
     </div>
   </li>

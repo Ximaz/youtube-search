@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const { f, results, total, loading, loadingMore, error, loadMore } = useSearchContext()
+const { t, tc } = useI18n()
 
 // The infinite-scroll sentinel lives here, so this component owns the observer
 // that prefetches the next page as it nears the viewport.
@@ -18,21 +19,21 @@ onBeforeUnmount(() => observer?.disconnect())
   <section class="results">
     <div class="results-head">
       <p>
-        <strong>{{ total }}</strong> match{{ total === 1 ? '' : 'es' }}
+        <strong>{{ total }}</strong> {{ tc('results.matchNoun', total) }}
         <span
           v-if="results.length < total"
           class="muted"
-        > · showing {{ results.length }}</span>
+        >{{ t('results.showing', { n: results.length }) }}</span>
         <span
           v-if="loading"
           class="muted"
-        > · searching…</span>
+        >{{ t('results.searching') }}</span>
         <span
           v-if="error"
           class="error"
         > · {{ error }}</span>
       </p>
-      <label class="perpage">Per page
+      <label class="perpage">{{ t('results.perPage') }}
         <select v-model.number="f.perPage">
           <option :value="50">50</option>
           <option :value="100">100</option>
@@ -58,20 +59,20 @@ onBeforeUnmount(() => observer?.disconnect())
       v-if="loadingMore"
       class="muted load-more"
     >
-      Loading more…
+      {{ t('results.loadingMore') }}
     </p>
     <p
       v-else-if="!loading && results.length > 0 && results.length >= total"
       class="muted load-more"
     >
-      End of results.
+      {{ t('results.endOfResults') }}
     </p>
 
     <p
       v-if="!loading && results.length === 0"
       class="muted empty"
     >
-      No videos match these filters.
+      {{ t('results.noResults') }}
     </p>
   </section>
 </template>

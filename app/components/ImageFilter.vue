@@ -5,6 +5,7 @@ import type { ImageTarget } from '~/types/search'
 
 const props = defineProps<{ target: ImageTarget, label: string }>()
 const { f, hashFromUrl, hashFromFile, hashFromPaste, clearImage } = useSearchContext()
+const { t } = useI18n()
 const image = computed(() => f.images[props.target])
 </script>
 
@@ -14,7 +15,7 @@ const image = computed(() => f.images[props.target])
     <template v-if="!image.phash">
       <input
         type="url"
-        placeholder="paste image or type URL"
+        :placeholder="t('filters.imagePlaceholder')"
         @paste="hashFromPaste($event, target)"
         @change="hashFromUrl(($event.target as HTMLInputElement).value, target)"
       >
@@ -25,8 +26,8 @@ const image = computed(() => f.images[props.target])
       >
     </template>
     <template v-else>
-      <span class="imgok">✓ image set</span>
-      <label class="slider">strictness
+      <span class="imgok">{{ t('filters.imageSet') }}</span>
+      <label class="slider">{{ t('filters.strictness') }}
         <input
           v-model.number="image.threshold"
           type="range"
@@ -39,7 +40,7 @@ const image = computed(() => f.images[props.target])
         class="link"
         @click="clearImage(target)"
       >
-        Clear
+        {{ t('common.clear') }}
       </button>
     </template>
   </div>

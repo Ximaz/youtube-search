@@ -14,15 +14,19 @@ const {
   disconnectYouTube,
   triggerSync,
 } = useAccount()
+const { t, tc, fmtDate } = useI18n()
 </script>
 
 <template>
   <main class="page">
+    <div class="topbar">
+      <LanguageSwitcher />
+    </div>
     <h1 class="title">
-      YouTube Deep-Search
+      {{ t('app.title') }}
     </h1>
     <p class="subtitle">
-      Re-find a buried video in your own playlists &amp; likes — read-only, runs on your machine.
+      {{ t('app.subtitle') }}
     </p>
 
     <!-- Loading -->
@@ -30,7 +34,7 @@ const {
       v-if="appAuthed === null"
       class="card"
     >
-      Loading…
+      {{ t('common.loading') }}
     </section>
 
     <!-- App password gate -->
@@ -38,9 +42,9 @@ const {
       v-else-if="!appAuthed"
       class="card"
     >
-      <h2>Unlock</h2>
+      <h2>{{ t('account.unlockTitle') }}</h2>
       <p class="muted">
-        This instance is protected by your app password.
+        {{ t('account.protected') }}
       </p>
       <form
         class="row"
@@ -49,14 +53,14 @@ const {
         <input
           v-model="password"
           type="password"
-          placeholder="App password"
+          :placeholder="t('account.passwordPlaceholder')"
           autocomplete="current-password"
         >
         <button
           type="submit"
           :disabled="busy || !password"
         >
-          Unlock
+          {{ t('account.unlock') }}
         </button>
       </form>
       <p
@@ -72,12 +76,12 @@ const {
       <div class="account-row">
         <section class="card">
           <div class="card-head">
-            <h2>YouTube account</h2>
+            <h2>{{ t('account.youtubeAccount') }}</h2>
             <button
               class="link"
               @click="lockApp"
             >
-              Lock
+              {{ t('account.lock') }}
             </button>
           </div>
 
@@ -85,29 +89,29 @@ const {
             v-if="connectError"
             class="error"
           >
-            Connection error: {{ connectError }}
+            {{ t('account.connectionError', { error: connectError ?? '' }) }}
           </p>
           <p
             v-else-if="justConnected"
             class="ok"
           >
-            ✓ Connected successfully.
+            {{ t('account.connectedSuccess') }}
           </p>
 
           <template v-if="connection?.connected">
             <p class="ok">
-              Connected<span v-if="connection.channelId"> · channel <code>{{ connection.channelId }}</code></span>
+              {{ t('account.connected') }}<span v-if="connection.channelId"> · {{ t('account.channel') }} <code>{{ connection.channelId }}</code></span>
             </p>
             <p
               v-if="connection.tokenInvalid"
               class="error"
             >
-              Your access expired — please reconnect.
+              {{ t('account.accessExpired') }}
               <button
                 class="link"
                 @click="connectYouTube"
               >
-                Reconnect
+                {{ t('account.reconnect') }}
               </button>
             </p>
             <div class="row">
@@ -115,23 +119,23 @@ const {
                 :disabled="busy"
                 @click="triggerSync"
               >
-                Sync now
+                {{ t('account.syncNow') }}
               </button>
               <button
                 class="link"
                 @click="disconnectYouTube"
               >
-                Disconnect
+                {{ t('account.disconnect') }}
               </button>
             </div>
           </template>
 
           <template v-else>
             <p class="muted">
-              Connect your YouTube account with read-only access. We never modify, delete, like, or comment on anything.
+              {{ t('account.connectBlurb') }}
             </p>
             <button @click="connectYouTube">
-              Connect YouTube
+              {{ t('account.connectYoutube') }}
             </button>
           </template>
         </section>
@@ -141,19 +145,19 @@ const {
           v-if="sync"
           class="card"
         >
-          <h2>Local mirror</h2>
+          <h2>{{ t('mirror.title') }}</h2>
           <p>
-            Phase: <strong>{{ sync.phase }}</strong>
+            {{ t('mirror.phaseLabel') }} <strong>{{ t(`mirror.phases.${sync.phase}`) }}</strong>
             <span
               v-if="sync.parked"
               class="warn"
-            > · quota-parked (resumes after reset)</span>
+            >{{ t('mirror.quotaParked') }}</span>
           </p>
           <ul class="stats">
-            <li>{{ sync.counts.videosHydrated }} / {{ sync.counts.videos }} videos</li>
-            <li>{{ sync.counts.channels }} channels</li>
-            <li>{{ sync.counts.playlists }} playlists</li>
-            <li>{{ sync.counts.subscriptions }} subscriptions</li>
+            <li>{{ sync.counts.videosHydrated }} / {{ sync.counts.videos }} {{ tc('mirror.videosNoun', sync.counts.videos) }}</li>
+            <li>{{ sync.counts.channels }} {{ tc('mirror.channelsNoun', sync.counts.channels) }}</li>
+            <li>{{ sync.counts.playlists }} {{ tc('mirror.playlistsNoun', sync.counts.playlists) }}</li>
+            <li>{{ sync.counts.subscriptions }} {{ tc('mirror.subscriptionsNoun', sync.counts.subscriptions) }}</li>
           </ul>
           <p
             v-if="sync.lastError"
@@ -165,7 +169,7 @@ const {
             v-if="sync.lastFullSyncAt"
             class="muted"
           >
-            Last full sync: {{ fmtDate(sync.lastFullSyncAt) }}
+            {{ t('mirror.lastSync', { date: fmtDate(sync.lastFullSyncAt) }) }}
           </p>
         </section>
       </div>
@@ -175,7 +179,7 @@ const {
         v-else
         class="card muted"
       >
-        Your library isn't mirrored yet — connect your account and run a sync, then search it here.
+        {{ t('mirror.empty') }}
       </section>
     </template>
   </main>

@@ -39,6 +39,7 @@ function defaultFilters() {
 }
 
 function useVideoSearch() {
+  const { t } = useI18n()
   const f = reactive(defaultFilters())
 
   const imageError = ref<string | null>(null)
@@ -56,7 +57,7 @@ function useVideoSearch() {
 
   async function hashFromUrl(url: string, target: ImageTarget): Promise<void> {
     if (!url.trim()) return
-    await hashImage({ url }, target, 'Could not read that image URL.')
+    await hashImage({ url }, target, t('errors.imageUrl'))
   }
 
   async function hashFromFile(event: Event, target: ImageTarget): Promise<void> {
@@ -64,7 +65,7 @@ function useVideoSearch() {
     if (!file) return
     const form = new FormData()
     form.append('image', file)
-    await hashImage(form, target, 'Could not read that image file.')
+    await hashImage(form, target, t('errors.imageFile'))
   }
 
   // Paste straight into the URL field: if the clipboard holds an image blob we
@@ -77,7 +78,7 @@ function useVideoSearch() {
     event.preventDefault()
     const form = new FormData()
     form.append('image', file, file.name || 'clipboard.png')
-    await hashImage(form, target, 'Could not read that pasted image.')
+    await hashImage(form, target, t('errors.imagePaste'))
   }
 
   function clearImage(target: ImageTarget): void {
@@ -189,7 +190,7 @@ function useVideoSearch() {
       total.value = res.total
     }
     catch {
-      if (seq === searchSeq) error.value = 'Search failed.'
+      if (seq === searchSeq) error.value = t('errors.searchFailed')
     }
     finally {
       if (seq === searchSeq) loading.value = false

@@ -1,0 +1,24 @@
+{
+  // This project uses ESLint (@stylistic) as the single source of truth for
+  // formatting — single quotes, no semicolons, etc. Make ESLint the formatter
+  // for the languages it owns so saving matches the lint rules (instead of the
+  // built-in TS formatter, which defaults to double quotes + semicolons), and
+  // apply every auto-fixable rule on save.
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "eslint.format.enable": true,
+  "eslint.validate": ["javascript", "typescript", "vue"],
+  "[javascript]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+    "editor.formatOnSave": true
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+    "editor.formatOnSave": true
+  },
+  "[vue]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+    "editor.formatOnSave": true
+  }
+}

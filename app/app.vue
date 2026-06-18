@@ -1,5 +1,6 @@
 <script setup lang="ts">
-useHead({ title: 'YouTube Deep-Search' })
+const { t } = useI18n()
+useHead({ title: () => t('app.title') })
 </script>
 
 <template>

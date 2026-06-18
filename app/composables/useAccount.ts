@@ -3,6 +3,7 @@
 import type { ConnectionStatus, SessionStatus, SyncStatus } from '~/types/account'
 
 export function useAccount() {
+  const { t } = useI18n()
   const route = useRoute()
 
   const appAuthed = ref<boolean | null>(null)
@@ -43,7 +44,7 @@ export function useAccount() {
       startPolling()
     }
     catch {
-      loginError.value = 'Invalid password.'
+      loginError.value = t('account.invalidPassword')
     }
     finally {
       busy.value = false
