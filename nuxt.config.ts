@@ -22,6 +22,16 @@ export default defineNuxtConfig({
     scheduledTasks: {
       '0 3 * * *': ['resync'],
     },
+    // Same unused/unread enforcement for the server tsconfig (the app config is
+    // covered via `typescript.tsConfig` above).
+    typescript: {
+      tsConfig: {
+        compilerOptions: {
+          noUnusedLocals: true,
+          noUnusedParameters: true,
+        },
+      },
+    },
   },
 
   typescript: {
@@ -29,6 +39,15 @@ export default defineNuxtConfig({
     // Type-checking runs out-of-band via `pnpm typecheck` (nuxt typecheck) so
     // dev/build stay fast; CI and the Docker build gate on it.
     typeCheck: false,
+    // Flag declared-but-never-read locals and parameters at type-check time —
+    // the "unread value" class ESLint's no-unused-vars cannot see (e.g. a
+    // template-only ref). Merged into the generated tsconfigs.
+    tsConfig: {
+      compilerOptions: {
+        noUnusedLocals: true,
+        noUnusedParameters: true,
+      },
+    },
   },
 
   // Lint config is authored in TypeScript (eslint.config.ts); enable the

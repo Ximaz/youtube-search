@@ -1,107 +1,19 @@
 <script setup lang="ts">
-interface SessionStatus { authenticated: boolean }
-interface ConnectionStatus { connected: boolean, channelId: string | null, tokenInvalid: boolean }
-interface SyncStatus {
-  phase: string
-  lastError: string | null
-  lastFullSyncAt: string | null
-  parked: boolean
-  counts: { videos: number, videosHydrated: number, channels: number, playlists: number, subscriptions: number }
-}
-
-const route = useRoute()
-
-const appAuthed = ref<boolean | null>(null)
-const password = ref('')
-const loginError = ref<string | null>(null)
-const connection = ref<ConnectionStatus | null>(null)
-const sync = ref<SyncStatus | null>(null)
-const busy = ref(false)
-
-const connectError = computed(() => {
-  const e = route.query.connect_error
-  return typeof e === 'string' ? e : null
-})
-const justConnected = computed(() => route.query.connected === '1')
-
-let pollTimer: ReturnType<typeof setInterval> | null = null
-
-async function refreshConnection(): Promise<void> {
-  connection.value = await $fetch<ConnectionStatus>('/api/auth/status')
-}
-
-async function refreshSync(): Promise<void> {
-  sync.value = await $fetch<SyncStatus>('/api/sync/status')
-}
-
-async function loadAll(): Promise<void> {
-  await Promise.all([refreshConnection(), refreshSync()])
-}
-
-async function loginApp(): Promise<void> {
-  loginError.value = null
-  busy.value = true
-  try {
-    await $fetch('/api/session/login', { method: 'POST', body: { password: password.value } })
-    appAuthed.value = true
-    password.value = ''
-    await loadAll()
-    startPolling()
-  }
-  catch {
-    loginError.value = 'Invalid password.'
-  }
-  finally {
-    busy.value = false
-  }
-}
-
-async function lockApp(): Promise<void> {
-  await $fetch('/api/session/logout', { method: 'POST' })
-  appAuthed.value = false
-  stopPolling()
-}
-
-function connectYouTube(): void {
-  window.location.href = '/api/auth/login'
-}
-
-async function disconnectYouTube(): Promise<void> {
-  await $fetch('/api/auth/logout', { method: 'POST' })
-  await refreshConnection()
-}
-
-async function triggerSync(): Promise<void> {
-  busy.value = true
-  try {
-    await $fetch('/api/sync/trigger', { method: 'POST' })
-    await refreshSync()
-  }
-  finally {
-    busy.value = false
-  }
-}
-
-function startPolling(): void {
-  stopPolling()
-  pollTimer = setInterval(() => {
-    if (appAuthed.value) void refreshSync()
-  }, 2500)
-}
-function stopPolling(): void {
-  if (pollTimer) clearInterval(pollTimer)
-  pollTimer = null
-}
-
-onMounted(async () => {
-  const status = await $fetch<SessionStatus>('/api/session/status')
-  appAuthed.value = status.authenticated
-  if (status.authenticated) {
-    await loadAll()
-    startPolling()
-  }
-})
-onBeforeUnmount(stopPolling)
+const {
+  appAuthed,
+  password,
+  loginError,
+  connection,
+  sync,
+  busy,
+  connectError,
+  justConnected,
+  loginApp,
+  lockApp,
+  connectYouTube,
+  disconnectYouTube,
+  triggerSync,
+} = useAccount()
 </script>
 
 <template>
@@ -253,7 +165,7 @@ onBeforeUnmount(stopPolling)
             v-if="sync.lastFullSyncAt"
             class="muted"
           >
-            Last full sync: {{ new Date(sync.lastFullSyncAt).toLocaleString() }}
+            Last full sync: {{ fmtDate(sync.lastFullSyncAt) }}
           </p>
         </section>
       </div>
@@ -269,24 +181,4 @@ onBeforeUnmount(stopPolling)
   </main>
 </template>
 
-<style scoped>
-.page { max-width: 1600px; margin: 2.5rem auto; padding: 0 1rem; font-family: system-ui, sans-serif; color: #1c1c1e; }
-.title { margin: 0 0 .25rem; font-size: 1.6rem; }
-.subtitle { margin: 0 0 1.5rem; color: #6b6b70; }
-.card { background: #fff; border: 1px solid #e5e5ea; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
-.account-row { display: flex; gap: 1rem; align-items: stretch; margin-bottom: 1rem; }
-.account-row .card { flex: 1; min-width: 0; margin-bottom: 0; }
-.card-head { display: flex; align-items: center; justify-content: space-between; }
-.card h2 { margin: 0 0 .5rem; font-size: 1.05rem; }
-.row { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; margin-top: .5rem; }
-input { flex: 1; padding: .55rem .7rem; border: 1px solid #d0d0d5; border-radius: 8px; font-size: 1rem; }
-button { padding: .55rem .9rem; border: 0; border-radius: 8px; background: #cc0000; color: #fff; font-size: .95rem; cursor: pointer; }
-button:disabled { opacity: .5; cursor: default; }
-button.link { background: none; color: #cc0000; padding: .25rem .4rem; }
-.muted { color: #6b6b70; }
-.error { color: #cc0000; }
-.ok { color: #1a7f37; }
-.warn { color: #b26a00; }
-.stats { display: flex; gap: 1.2rem; list-style: none; padding: 0; margin: .5rem 0; flex-wrap: wrap; }
-code { background: #f2f2f7; padding: .1rem .3rem; border-radius: 4px; font-size: .85em; }
-</style>
+<style scoped src="./index.css"></style>

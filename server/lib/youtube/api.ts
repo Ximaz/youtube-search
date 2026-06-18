@@ -12,7 +12,7 @@ interface YoutubeErrorBody {
 
 // Single authenticated GET against the YouTube Data API. Parses the canonical
 // error.errors[].reason so callers can react to quota/rate-limit codes.
-export async function youtubeGet<T>(
+async function youtubeGet<T>(
   path: string,
   params: Record<string, string>,
   accessToken: string,
@@ -36,8 +36,8 @@ async function ytApi<T>(path: string, params: Record<string, string>): Promise<T
 const parseCount = (v: string | undefined): number | null => (v == null ? null : Number(v))
 
 // ---- thumbnails ----
-export interface Thumbnail { url: string, width?: number, height?: number }
-export type Thumbnails = Partial<Record<'default' | 'medium' | 'high' | 'standard' | 'maxres', Thumbnail>>
+interface Thumbnail { url: string, width?: number, height?: number }
+type Thumbnails = Partial<Record<'default' | 'medium' | 'high' | 'standard' | 'maxres', Thumbnail>>
 
 // ---- channels.list?mine=true (own channel) ----
 interface ChannelsListResponse {

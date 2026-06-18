@@ -11,5 +11,18 @@ export default withNuxt({
     // Single-file components for this app are intentionally single-word
     // (e.g. filter components live under components/filters/).
     'vue/multi-word-component-names': 'off',
+
+    // Fail on any unused binding — variables, imports, function arguments and
+    // caught errors. Escape hatch: prefix the name with `_` (e.g. `_event`).
+    '@typescript-eslint/no-unused-vars': ['error', {
+      vars: 'all',
+      varsIgnorePattern: '^_',
+      args: 'all',
+      argsIgnorePattern: '^_',
+      caughtErrors: 'all',
+      caughtErrorsIgnorePattern: '^_',
+      destructuredArrayIgnorePattern: '^_',
+      ignoreRestSiblings: true,
+    }],
   },
 })
