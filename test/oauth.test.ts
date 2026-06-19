@@ -6,7 +6,7 @@ afterEach(() => {
 })
 
 describe('buildAuthUrl', () => {
-  it('requests read-only, offline access with the given state', () => {
+  it('requests offline access with the catalog + comment scopes and given state', () => {
     const url = new URL(buildAuthUrl('state-xyz'))
     expect(url.origin + url.pathname).toBe('https://accounts.google.com/o/oauth2/v2/auth')
     expect(url.searchParams.get('state')).toBe('state-xyz')
@@ -14,6 +14,8 @@ describe('buildAuthUrl', () => {
     expect(url.searchParams.get('access_type')).toBe('offline')
     expect(url.searchParams.get('prompt')).toBe('consent')
     expect(url.searchParams.get('scope')).toContain('youtube.readonly')
+    // commentThreads.list needs force-ssl; readonly alone 403s with insufficient scopes.
+    expect(url.searchParams.get('scope')).toContain('youtube.force-ssl')
     expect(url.searchParams.get('client_id')).toBe('test-client-id')
   })
 })

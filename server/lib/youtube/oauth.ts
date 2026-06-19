@@ -9,7 +9,13 @@ import { YoutubeAuthError } from './errors'
 
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth'
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
-const SCOPE = 'https://www.googleapis.com/auth/youtube.readonly'
+// All catalog reads work under youtube.readonly. Comments are the exception:
+// commentThreads.list is not covered by readonly and only accepts force-ssl
+// (YouTube offers no read-only comment scope). We never write — we only read.
+const SCOPE = [
+  'https://www.googleapis.com/auth/youtube.readonly',
+  'https://www.googleapis.com/auth/youtube.force-ssl',
+].join(' ')
 const ACCESS_TOKEN_CACHE_KEY = 'yt:access_token'
 const EXPIRY_SLACK_MS = 60_000
 

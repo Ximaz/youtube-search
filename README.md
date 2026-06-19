@@ -26,9 +26,13 @@ it down elsewhere.**
 
 ## Connecting your YouTube account
 
-- The app asks Google for **read-only** access to your YouTube data
-  (`youtube.readonly`). That permission **cannot** modify anything — it can only
-  read.
+- The app asks Google for **read** access to your YouTube data. Almost everything
+  uses the strict read-only scope (`youtube.readonly`), which **cannot** modify
+  anything. Reading **your own comments** is the one exception: YouTube has no
+  read-only scope for comments, so the app must also request `youtube.force-ssl`.
+  Google's consent screen describes that scope as letting an app edit or delete
+  your videos and comments — but **this app only ever reads; it never writes,
+  edits, or deletes anything.**
 - **What it can see:** your playlists (public, unlisted *and* private), your
   Liked videos, your subscriptions, and your own comments.
 - **What it can't see:** Watch Later and Watch History (YouTube no longer exposes
