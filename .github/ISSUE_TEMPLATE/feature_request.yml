@@ -1,0 +1,55 @@
+name: Feature request
+description: Suggest an idea or improvement
+title: "feat: "
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the suggestion! This project favours a **minimal, focused**
+        feature set, so please describe the concrete problem you're trying to
+        solve — that helps decide whether a feature earns its place.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Before you start
+      options:
+        - label: I searched existing issues and this isn't already requested.
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: The use case or limitation you're hitting today.
+      placeholder: I can't narrow results to a single playlist, so…
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What you'd like to see happen. Sketches or examples welcome.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches you thought about, and why they fall short.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Project constraints
+      description: This project is read-only on the user's account and keeps data local.
+      options:
+        - label: This feature keeps the app read-only on the user's YouTube account.
+          required: true
+        - label: This feature doesn't send user data to any third party.
+          required: true

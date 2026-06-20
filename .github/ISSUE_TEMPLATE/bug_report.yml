@@ -1,0 +1,75 @@
+name: Bug report
+description: Report something that isn't working as expected
+title: "bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug! Please fill in the sections below so it can
+        be reproduced. Do **not** include secrets (API keys, tokens, passwords)
+        or personal data in logs you paste here.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Before you start
+      options:
+        - label: I searched existing issues and this isn't a duplicate.
+          required: true
+        - label: I'm running the latest version of `main`.
+          required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug, including what you expected instead.
+      placeholder: When I search by image, the results never update…
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: The exact steps to trigger the bug.
+      placeholder: |
+        1. Unlock the app
+        2. Paste an image URL into the thumbnail filter
+        3. …
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: >-
+        App or worker output, browser console errors, etc. This is rendered as
+        code, so no backticks are needed.
+      render: shell
+    validations:
+      required: false
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Which part is affected?
+      options:
+        - Web app (UI / SSR)
+        - Worker (sync / image hashing)
+        - Database / migrations
+        - Docker / deployment
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, browser, and how you run it (Docker Compose vs. from source).
+      placeholder: macOS 15, Librewolf 128, Docker Compose
+    validations:
+      required: true
